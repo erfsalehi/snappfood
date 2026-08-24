@@ -57,16 +57,20 @@ Excel opens Persian text correctly).
 
 - `GET /search/api/v4/food-party?lat&long&deal_project_list_id&page&page_size`
   is the endpoint behind every discount carousel.
-- Section ids are not published. `KNOWN_SECTION_IDS` in `server.js` holds the
-  ones that existed at the time of writing; ticking «جست‌وجوی کامل بخش‌ها»
-  probes ids 1–80 instead, which finds sections added since (slower).
+- Section ids are not published. `KNOWN_SECTION_IDS` in `lib/snappfood.js`
+  holds the ones that existed at the time of writing; ticking «جست‌وجوی کامل
+  بخش‌ها» probes ids 1–80 instead, which finds sections added since (slower).
 - `page_size` is capped at 200 server-side, so larger sections are paged.
+  Page 0 already carries `total_count` and the section title, so there is no
+  separate discovery request.
 - The same product appears in several sections. Items are deduplicated by
   `productVariationId` and every section it belongs to is kept.
 - `rating` comes back on a 0–10 scale and is halved to match the 0–5 stars the
   site displays.
-- The field the API calls `discount` is the *post-discount price*, not the
-  amount off. `price` is the original.
+- The field the API calls `discount` is the **amount taken off**, not the
+  resulting price: it always equals `price * discountRatio / 100`. The price
+  the customer pays is `price - discount`. Beware of inferring this from an
+  item at exactly 50%, where both readings give the same number.
 - The browser cannot call snappfood.ir directly (CORS), which is why the Node
   process proxies.
 
