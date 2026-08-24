@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>تخفیف‌های اسنپ‌فود — مرتب‌سازی</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --panel: #ffffff;
+    --border: #e3e6ea;
+    --text: #1b1f24;
+    --muted: #6b7280;
+    --accent: #e8384f;
+    --good: #14804a;
+    --row-alt: #fafbfc;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171a;
+      --panel: #1c2024;
+      --border: #2c3237;
+      --text: #e8eaed;
+      --muted: #9aa3ad;
+      --accent: #ff5f72;
+      --good: #35c37d;
+      --row-alt: #191d21;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font: 14px/1.5 Vazirmatn, "Segoe UI", Tahoma, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  header {
+    position: sticky; top: 0; z-index: 3;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+  }
+  h1 { margin: 0 0 10px; font-size: 17px; font-weight: 700; }
+  h1 small { font-weight: 400; color: var(--muted); font-size: 12px; margin-inline-start: 8px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+  .field { display: flex; align-items: center; gap: 5px; }
+  .field > span { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  input, select, button {
+    font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 7px; padding: 5px 9px;
+  }
+  input[type=number] { width: 92px; }
+  input[type=search] { min-width: 200px; }
+  input[type=checkbox] { accent-color: var(--accent); }
+  button { cursor: pointer; background: var(--accent); color: #fff; border-color: transparent; font-weight: 600; }
+  button:disabled { opacity: .55; cursor: default; }
+  button.ghost { background: transparent; color: var(--text); border-color: var(--border); font-weight: 400; }
+  label.check { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); cursor: pointer; }
+  #status { padding: 8px 16px; color: var(--muted); font-size: 12px; }
+  #status b { color: var(--text); }
+  #status.error { color: var(--accent); }
+  .wrap { padding: 0 16px 40px; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 10px; overflow: hidden; }
+  th, td { padding: 7px 9px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  thead th {
+    position: sticky; top: 0; z-index: 2;
+    background: var(--panel); cursor: pointer; user-select: none;
+    font-size: 12px; color: var(--muted); font-weight: 600;
+    border-bottom: 2px solid var(--border);
+  }
+  thead th:hover { color: var(--text); }
+  thead th.sorted { color: var(--accent); }
+  thead th .arrow { font-size: 9px; opacity: .8; }
+  tbody tr:nth-child(even) { background: var(--row-alt); }
+  tbody tr:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  td.name { white-space: normal; min-width: 180px; max-width: 320px; }
+  td.vendor { white-space: normal; max-width: 200px; }
+  td.num { font-variant-numeric: tabular-nums; }
+  .strike { color: var(--muted); text-decoration: line-through; font-size: 12px; }
+  .pct { color: #fff; background: var(--accent); border-radius: 5px; padding: 1px 6px; font-size: 12px; font-weight: 700; }
+  .free { color: var(--good); font-weight: 600; }
+  .stars { color: #f0a92b; }
+  .votes { color: var(--muted); font-size: 11px; }
+  .thumb { width: 38px; height: 38px; border-radius: 6px; object-fit: cover; background: var(--border); }
+  a { color: inherit; text-decoration: none; }
+  td.name a:hover { text-decoration: underline; }
+  .desc { color: var(--muted); font-size: 11px; display: block; white-space: normal; }
+</style>
+</head>
+<body>
+<header>
+  <h1>تخفیف‌های اسنپ‌فود <small>همه‌ی لیست‌های تخفیف‌دار، قابل مرتب‌سازی روی هر ستون</small></h1>
+  <div class="controls">
+    <div class="field"><span>شهر</span><select id="city"></select></div>
+    <button class="ghost" id="geo" title="استفاده از موقعیت دقیق دستگاه">موقعیت من</button>
+    <div class="field"><span>عرض</span><input id="lat" type="number" step="0.0001" value="35.715"></div>
+    <div class="field"><span>طول</span><input id="long" type="number" step="0.0001" value="51.404"></div>
+    <button id="refresh">دریافت لیست</button>
+    <label class="check"><input id="deep" type="checkbox"> جست‌وجوی کامل بخش‌ها</label>
+    <span style="flex:1"></span>
+    <div class="field"><span>جست‌وجو</span><input id="q" type="search" placeholder="نام غذا یا رستوران…"></div>
+    <div class="field"><span>بخش</span><select id="section"><option value="">همه</option></select></div>
+    <div class="field"><span>حداقل امتیاز</span><input id="minRating" type="number" min="0" max="5" step="0.1" value="0"></div>
+    <div class="field"><span>حداقل تخفیف ٪</span><input id="minPct" type="number" min="0" max="100" step="5" value="0"></div>
+    <div class="field"><span>حداکثر قابل پرداخت</span><input id="maxTotal" type="number" step="10000" placeholder="—"></div>
+    <label class="check"><input id="freeOnly" type="checkbox"> ارسال رایگان</label>
+    <label class="check"><input id="stockOnly" type="checkbox" checked> موجود</label>
+    <button class="ghost" id="csv">دانلود CSV</button>
+  </div>
+</header>
+
+<div id="status">در حال دریافت…</div>
+
+<div class="wrap">
+  <table>
+    <thead><tr id="head"></tr></thead>
+    <tbody id="body"></tbody>
+  </table>
+</div>
+
+<script>
+const COLUMNS = [
+  { key: 'image',         label: '',              sortable: false },
+  { key: 'name',          label: 'نام',            type: 'text' },
+  { key: 'vendor',        label: 'رستوران',        type: 'text' },
+  { key: 'section',       label: 'بخش',            type: 'text' },
+  { key: 'rating',        label: 'امتیاز',         type: 'num' },
+  { key: 'price',         label: 'قیمت اصلی',      type: 'num' },
+  { key: 'finalPrice',    label: 'قیمت با تخفیف',  type: 'num' },
+  { key: 'discountRatio', label: 'تخفیف ٪',        type: 'num' },
+  { key: 'saving',        label: 'صرفه‌جویی',       type: 'num' },
+  { key: 'deliveryNow',   label: 'هزینه ارسال',    type: 'num' },
+  { key: 'total',         label: 'مجموع پرداختی',  type: 'num' },
+  { key: 'minOrder',      label: 'حداقل سفارش',    type: 'num' },
+  { key: 'remaining',     label: 'موجودی',         type: 'num' },
+];
+
+const fa = (n) => (n || 0).toLocaleString('fa-IR');
+const $ = (id) => document.getElementById(id);
+
+let allItems = [];
+let view = [];
+let sort = { key: 'discountRatio', dir: -1 };
+
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+// ---- rendering -------------------------------------------------------------
+
+function renderHead() {
+  $('head').innerHTML = COLUMNS.map((c) => {
+    if (c.sortable === false) return '<th></th>';
+    const active = sort.key === c.key;
+    const arrow = active ? ' <span class="arrow">' + (sort.dir === 1 ? '▲' : '▼') + '</span>' : '';
+    return '<th class="' + (active ? 'sorted' : '') + '" data-key="' + c.key + '">' + c.label + arrow + '</th>';
+  }).join('');
+
+  for (const th of $('head').querySelectorAll('th[data-key]')) {
+    th.onclick = () => {
+      const key = th.dataset.key;
+      const col = COLUMNS.find((c) => c.key === key);
+      // Numbers start high-to-low, text starts alphabetical.
+      if (sort.key === key) sort.dir *= -1;
+      else sort = { key, dir: col.type === 'num' ? -1 : 1 };
+      apply();
+    };
+  }
+}
+
+function stars(r) {
+  if (!r) return '<span class="votes">—</span>';
+  return '<span class="stars">★</span> ' + r.toFixed(1);
+}
+
+function renderRows() {
+  $('body').innerHTML = view.map((it) => {
+    const thumb = it.image ? '<img class="thumb" loading="lazy" src="' + it.image + '" alt="">' : '';
+    const desc = it.description ? '<span class="desc">' + esc(it.description.slice(0, 90)) + '</span>' : '';
+    const delivery = it.deliveryNow === 0
+      ? '<span class="free">رایگان</span>'
+      : fa(it.deliveryNow) + (it.deliveryDiscounted ? ' <span class="strike">' + fa(it.deliveryFee) + '</span>' : '');
+    return '<tr>'
+      + '<td>' + thumb + '</td>'
+      + '<td class="name"><a href="' + it.url + '" target="_blank" rel="noopener">' + esc(it.name) + '</a>' + desc + '</td>'
+      + '<td class="vendor"><a href="' + it.url + '" target="_blank" rel="noopener">' + esc(it.vendor) + '</a></td>'
+      + '<td>' + esc(it.sections.join(' / ')) + '</td>'
+      + '<td class="num">' + stars(it.rating) + ' <span class="votes">(' + fa(it.votes) + ')</span></td>'
+      + '<td class="num strike">' + fa(it.price) + '</td>'
+      + '<td class="num"><b>' + fa(it.finalPrice) + '</b></td>'
+      + '<td class="num"><span class="pct">٪' + fa(it.discountRatio) + '</span></td>'
+      + '<td class="num">' + fa(it.saving) + '</td>'
+      + '<td class="num">' + delivery + '</td>'
+      + '<td class="num"><b>' + fa(it.total) + '</b></td>'
+      + '<td class="num">' + fa(it.minOrder) + '</td>'
+      + '<td class="num">' + fa(it.remaining) + '</td>'
+      + '</tr>';
+  }).join('');
+}
+
+// ---- filtering + sorting ---------------------------------------------------
+
+function apply() {
+  const q = $('q').value.trim().toLowerCase();
+  const section = $('section').value;
+  const minRating = Number($('minRating').value) || 0;
+  const minPct = Number($('minPct').value) || 0;
+  const maxTotal = Number($('maxTotal').value) || Infinity;
+  const freeOnly = $('freeOnly').checked;
+  const stockOnly = $('stockOnly').checked;
+
+  view = allItems.filter((it) => {
+    if (q && !(it.name + ' ' + it.vendor).toLowerCase().includes(q)) return false;
+    if (section && !it.sections.includes(section)) return false;
+    if (it.rating < minRating) return false;
+    if (it.discountRatio < minPct) return false;
+    if (it.total > maxTotal) return false;
+    if (freeOnly && it.deliveryNow !== 0) return false;
+    if (stockOnly && it.remaining <= 0) return false;
+    return true;
+  });
+
+  const { key, dir } = sort;
+  const col = COLUMNS.find((c) => c.key === key);
+  view.sort((a, b) => {
+    if (col && col.type === 'text') {
+      const av = key === 'section' ? a.sections.join(' ') : a[key];
+      const bv = key === 'section' ? b.sections.join(' ') : b[key];
+      return dir * String(av).localeCompare(String(bv), 'fa');
+    }
+    return dir * ((a[key] || 0) - (b[key] || 0));
+  });
+
+  renderHead();
+  renderRows();
+
+  const saved = view.reduce((s, it) => s + it.saving, 0);
+  $('status').className = '';
+  $('status').innerHTML = '<b>' + fa(view.length) + '</b> مورد از <b>' + fa(allItems.length)
+    + '</b> — جمع صرفه‌جویی نمایش‌داده‌شده: <b>' + fa(saved) + '</b> تومان';
+}
+
+// ---- data ------------------------------------------------------------------
+
+async function load() {
+  const btn = $('refresh');
+  btn.disabled = true;
+  $('status').className = '';
+  $('status').textContent = 'در حال دریافت…';
+  try {
+    const params = new URLSearchParams({ lat: $('lat').value, long: $('long').value });
+    if ($('deep').checked) params.set('deep', '1');
+    const res = await fetch('/api/deals?' + params);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'خطا در دریافت');
+
+    allItems = data.items;
+    const titles = [...new Set(data.sections.map((s) => s.title))].sort((a, b) => a.localeCompare(b, 'fa'));
+    $('section').innerHTML = '<option value="">همه</option>'
+      + titles.map((t) => '<option>' + esc(t) + '</option>').join('');
+    localStorage.setItem('sf-loc', JSON.stringify({ lat: $('lat').value, long: $('long').value }));
+    apply();
+  } catch (err) {
+    $('status').className = 'error';
+    $('status').textContent = 'خطا: ' + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function toCsv() {
+  const cols = COLUMNS.filter((c) => c.key !== 'image');
+  const rows = [cols.map((c) => c.label).concat('لینک')];
+  for (const it of view) {
+    rows.push(cols.map((c) => (c.key === 'section' ? it.sections.join(' / ') : it[c.key])).concat(it.url));
+  }
+  // BOM so Excel reads the UTF-8 Persian text correctly.
+  const csv = '﻿' + rows.map((r) => r.map((v) => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = 'snappfood-deals.csv';
+  a.click();
+}
+
+// ---- location --------------------------------------------------------------
+
+// City centres. Snappfood scopes deals to a delivery radius, so a centre point
+// is only an approximation - use "موقعیت من" for your actual neighbourhood.
+const CITIES = [
+  ['تهران', 35.715, 51.404],
+  ['مشهد', 36.2972, 59.6067],
+  ['اصفهان', 32.6546, 51.668],
+  ['شیراز', 29.5918, 52.5837],
+  ['تبریز', 38.08, 46.2919],
+  ['کرج', 35.8355, 50.9915],
+  ['اهواز', 31.3183, 48.6706],
+  ['قم', 34.6416, 50.8746],
+  ['رشت', 37.2808, 49.5832],
+  ['کرمانشاه', 34.3142, 47.065],
+  ['ارومیه', 37.5527, 45.0761],
+  ['یزد', 31.8974, 54.3569],
+  ['کرمان', 30.2839, 57.0834],
+  ['بندرعباس', 27.1865, 56.2808],
+  ['ساری', 36.5633, 53.06],
+];
+
+// Shows which preset the current coordinates correspond to, or "دلخواه".
+function syncCitySelect() {
+  const lat = Number($('lat').value);
+  const long = Number($('long').value);
+  const near = CITIES.find((c) => Math.abs(c[1] - lat) < 0.001 && Math.abs(c[2] - long) < 0.001);
+  $('city').value = near ? near[0] : '';
+}
+
+$('city').innerHTML = '<option value="">دلخواه</option>'
+  + CITIES.map((c) => '<option>' + c[0] + '</option>').join('');
+
+$('city').onchange = () => {
+  const c = CITIES.find((x) => x[0] === $('city').value);
+  if (!c) return;
+  $('lat').value = c[1];
+  $('long').value = c[2];
+  load();
+};
+
+for (const id of ['lat', 'long']) $(id).addEventListener('input', syncCitySelect);
+
+$('geo').onclick = () => {
+  if (!navigator.geolocation) {
+    $('status').className = 'error';
+    $('status').textContent = 'مرورگر از موقعیت‌یابی پشتیبانی نمی‌کند.';
+    return;
+  }
+  $('status').className = '';
+  $('status').textContent = 'در حال یافتن موقعیت…';
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      $('lat').value = pos.coords.latitude.toFixed(4);
+      $('long').value = pos.coords.longitude.toFixed(4);
+      syncCitySelect();
+      load();
+    },
+    (err) => {
+      $('status').className = 'error';
+      $('status').textContent = 'دسترسی به موقعیت ممکن نشد: ' + err.message;
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+};
+
+for (const id of ['q', 'section', 'minRating', 'minPct', 'maxTotal', 'freeOnly', 'stockOnly']) {
+  $(id).addEventListener('input', apply);
+}
+$('refresh').onclick = load;
+$('csv').onclick = toCsv;
+
+try {
+  const saved = JSON.parse(localStorage.getItem('sf-loc') || 'null');
+  if (saved) { $('lat').value = saved.lat; $('long').value = saved.long; }
+} catch (e) { /* ignore bad cache */ }
+syncCitySelect();
+
+renderHead();
+load();
+</script>
+</body>
+</html>
