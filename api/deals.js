@@ -13,6 +13,6 @@ module.exports = async function handler(req, res) {
     res.setHeader('cache-control', 's-maxage=300, stale-while-revalidate=600');
     res.status(200).json(data);
   } catch (err) {
-    res.status(502).json({ error: err.message });
+    res.status(502).json({ error: err.message, unreachable: Boolean(err.unreachable) });
   }
 };

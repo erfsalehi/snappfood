@@ -75,3 +75,23 @@ Excel opens Persian text correctly).
 - Deals are live and rotate through the day; two refreshes minutes apart will
   differ.
 - Stock counts are per vendor daily deal and can go stale within minutes.
+
+## Hosting: why this runs locally and not on Vercel
+
+Snappfood is reachable only from inside Iran, and its API sends no CORS
+headers. That closes both ways of hosting this on foreign infrastructure:
+
+- **Server-side fetch** (a Vercel function calling Snappfood) fails at the
+  network level - `fetch failed`, no HTTP response at all.
+- **Client-side fetch** (the visitor's browser calling Snappfood directly,
+  which would use their Iranian IP) is blocked by the browser:
+  `No 'Access-Control-Allow-Origin' header is present on the requested
+  resource.`
+
+So the fetching side has to run on a host with an Iranian IP. `node server.js`
+on your own machine is the simplest such host, which is how this is meant to be
+used. To put it online, deploy `server.js` to an Iranian provider (Liara,
+ArvanCloud, Parspack) rather than Vercel or similar.
+
+A Vercel deployment exists at the project `snappfood`; the UI loads there but
+`/api/deals` returns `{"unreachable": true}` for the reason above.

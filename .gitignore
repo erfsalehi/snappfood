@@ -3,3 +3,8 @@ node_modules/
 
 # Local agent / editor tooling
 .claude/
+
+# Vercel CLI link data
+.vercel/
+
+.vercel
