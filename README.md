@@ -76,22 +76,51 @@ Excel opens Persian text correctly).
   differ.
 - Stock counts are per vendor daily deal and can go stale within minutes.
 
-## Hosting: why this runs locally and not on Vercel
+## Hosting outside Iran
 
-Snappfood is reachable only from inside Iran, and its API sends no CORS
-headers. That closes both ways of hosting this on foreign infrastructure:
+Snappfood only answers requests originating in Iran, and its API sends no CORS
+headers - so a foreign host cannot fetch it server-side (`fetch failed`, no
+HTTP response), and the visitor's browser cannot fetch it directly either
+(blocked by CORS). Traffic has to physically originate from an Iranian IP.
 
-- **Server-side fetch** (a Vercel function calling Snappfood) fails at the
-  network level - `fetch failed`, no HTTP response at all.
-- **Client-side fetch** (the visitor's browser calling Snappfood directly,
-  which would use their Iranian IP) is blocked by the browser:
-  `No 'Access-Control-Allow-Origin' header is present on the requested
-  resource.`
+Running `node server.js` on an Iranian connection needs nothing further; it
+connects directly.
 
-So the fetching side has to run on a host with an Iranian IP. `node server.js`
-on your own machine is the simplest such host, which is how this is meant to be
-used. To put it online, deploy `server.js` to an Iranian provider (Liara,
-ArvanCloud, Parspack) rather than Vercel or similar.
+Anywhere else, requests are tunnelled through an Iranian HTTP proxy.
+`lib/snappfood.js` tries a direct connection first and only falls back to the
+proxy pool if that fails, so the same code covers both cases. The chosen
+connection is reported as `via: "direct" | "proxy"` in the API response.
 
-A Vercel deployment exists at the project `snappfood`; the UI loads there but
-`/api/deals` returns `{"unreachable": true}` for the reason above.
+### Refreshing the proxies
+
+Free public proxies die within hours or days. When the site starts returning
+`{"unreachable": true}`, get fresh candidates from a list such as
+proxy5.net/free-proxy/iran (filter to Iran, HTTP/HTTPS) and test them:
+
+    /api/proxytest?list=1.2.3.4:8080,5.6.7.8:3128
+
+The response separates `working` from `failed` and hands back a ready-to-paste
+`SNAPPFOOD_PROXIES` value. Set that as an environment variable on the project
+and redeploy. Expect roughly one in four candidates to work.
+
+Two things the test guards against: proxies that simply time out, and proxies
+that hijack the request and answer 200 with their own page. Only a response
+that parses as Snappfood's JSON counts as working.
+
+### Cost of the proxy path
+
+A cold fetch through a proxy takes ~20-25s, against ~1.3s direct. The function
+is allowed 60s and the response is cached at the edge for 5 minutes, so only
+the first visitor in each window pays it - cached responses return in ~150ms.
+
+To keep it inside the limit, each section is fetched in a single request
+(page 0 carries `total_count` and the title, so no separate discovery round
+trip) - about 11 upstream requests per refresh rather than 30.
+
+### Trusting a proxy
+
+The proxy operator can see these requests and could serve fabricated
+responses. Nothing sensitive passes through - no login, no account data, only
+public discount listings - but prices shown via an untrusted proxy are worth a
+sanity check against the Snappfood app before ordering. Running locally from
+an Iranian connection avoids the question entirely.
