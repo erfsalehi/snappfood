@@ -101,6 +101,9 @@
   tbody tr:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
   td.name { white-space: normal; min-width: 170px; max-width: 320px; }
   td.vendor { white-space: normal; max-width: 190px; }
+  /* Items belong to several sections; joined nowrap this column ran to
+     ~290px and pushed the table past the viewport. */
+  td.section { white-space: normal; max-width: 150px; font-size: 12px; color: var(--muted); }
   td.num { font-variant-numeric: tabular-nums; }
 
   .strike { color: var(--muted); text-decoration: line-through; font-size: 12px; }
@@ -304,7 +307,7 @@ function renderTable() {
       + '<td>' + thumb + '</td>'
       + '<td class="name"><a href="' + it.url + '" target="_blank" rel="noopener">' + esc(it.name) + '</a>' + desc + '</td>'
       + '<td class="vendor"><a href="' + it.url + '" target="_blank" rel="noopener">' + esc(it.vendor) + '</a></td>'
-      + '<td>' + esc(it.sections.join(' / ')) + '</td>'
+      + '<td class="section">' + esc(it.sections.join(' / ')) + '</td>'
       + '<td class="num">' + stars(it.rating) + ' <span class="votes">(' + fa(it.votes) + ')</span></td>'
       + '<td class="num strike">' + fa(it.price) + '</td>'
       + '<td class="num"><b>' + fa(it.finalPrice) + '</b></td>'
