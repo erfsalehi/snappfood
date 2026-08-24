@@ -8,9 +8,11 @@ module.exports = async function handler(req, res) {
   const { lat = '35.715', long = '51.404', deep } = req.query || {};
   try {
     const data = await fetchAllDeals({ lat, long, deep: deep === '1' });
-    // Deals rotate through the day; a short shared cache keeps the upstream
-    // request count sane without showing anyone a stale list.
-    res.setHeader('cache-control', 's-maxage=300, stale-while-revalidate=600');
+    // Stock sells out during the day, so this is deliberately short: two
+    // minutes bounds how wrong the remaining counts can be, while still
+    // sparing the (slow, flaky) proxy path from every single visitor.
+    // stale-while-revalidate keeps the refresh off the critical path.
+    res.setHeader('cache-control', 's-maxage=120, stale-while-revalidate=600');
     res.status(200).json(data);
   } catch (err) {
     res.status(502).json({ error: err.message, unreachable: Boolean(err.unreachable) });

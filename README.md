@@ -7,13 +7,18 @@ sort on any column.
 ## Run
 
 ```
+npm install
+```
+
+```
 node server.js
 ```
 
 Then open http://localhost:5173
 
-No dependencies, no build step, no account needed — Snappfood's discount API is
-public and only needs a location.
+No build step and no account needed - Snappfood's discount API is public and
+only needs a location. The single dependency is `undici`, for proxy support;
+see "Hosting outside Iran" below.
 
 ## Setting your location
 
@@ -52,6 +57,36 @@ discount %, maximum total payable, free-delivery-only, in-stock-only.
 
 «دانلود CSV» exports whatever is currently filtered and sorted (UTF-8 BOM, so
 Excel opens Persian text correctly).
+
+## Staying current
+
+Stock sells out and vendors pull items, so a list you have been staring at for
+ten minutes is not safe to order from. Filtering and sorting always run
+instantly against what is already in memory; separately, adjusting any control
+triggers a background refresh **if** the data is more than 60 seconds old.
+
+The refresh is debounced by 800ms, so typing in the search box cannot fire a
+request per keystroke - through a proxy each fetch costs ~20s. It is also a
+background refresh: the table is never blanked, scroll position is preserved,
+and a small spinner in the status line is the only indication. Returning to
+the tab after leaving it re-checks too, and the status line shows how old the
+data is.
+
+The API's own cache is 120 seconds at the edge, which bounds how wrong the
+remaining-stock counts can be.
+
+## Layout
+
+Above 1100px the data is a table with sortable column headers that stay pinned
+below the toolbar while scrolling. The toolbar's height changes as it wraps, so
+the offset is measured at runtime and published as the `--head-top` CSS
+variable rather than hard-coded.
+
+Below 1100px there is not enough width for thirteen columns, so rows become
+cards, the filters collapse behind a «فیلترها» toggle, and sorting moves to a
+dropdown plus a direction button (there are no column headers to click). Note
+that no scroll container may sit between the sticky `<th>` and the viewport -
+an `overflow-x: auto` wrapper silently cancels `position: sticky`.
 
 ## How it works
 
@@ -114,7 +149,7 @@ that parses as Snappfood's JSON counts as working.
 ### Cost of the proxy path
 
 A cold fetch through a proxy takes ~20-25s, against ~1.3s direct. The function
-is allowed 60s and the response is cached at the edge for 5 minutes, so only
+is allowed 60s and the response is cached at the edge for 2 minutes, so only
 the first visitor in each window pays it - cached responses return in ~150ms.
 
 To keep it inside the limit, each section is fetched in a single request
