@@ -72,6 +72,7 @@
   #status b { color: var(--text); }
   #status.error { color: var(--accent); }
   #age { color: var(--muted); }
+  #build { color: var(--muted); opacity: .7; font-family: ui-monospace, monospace; font-size: 11px; }
   #spin {
     display: none; width: 12px; height: 12px; border-radius: 50%;
     border: 2px solid var(--border); border-top-color: var(--accent);
@@ -197,7 +198,7 @@
   </div>
 </header>
 
-<div id="status"><span id="spin"></span><span id="summary">در حال دریافت…</span><span id="age"></span></div>
+<div id="status"><span id="spin"></span><span id="summary">در حال دریافت…</span><span id="age"></span><span id="build"></span></div>
 
 <div class="wrap">
   <!-- Sorting control for small screens, where there are no column headers. -->
@@ -465,6 +466,7 @@ async function load(opts) {
 
     allItems = data.items;
     lastFetch = Date.now();
+    if (data.build) $('build').textContent = '· نسخه ' + data.build;
 
     const titles = [...new Set(data.sections.map((s) => s.title))].sort((a, b) => a.localeCompare(b, 'fa'));
     const current = $('section').value;

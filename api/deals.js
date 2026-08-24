@@ -8,6 +8,9 @@ module.exports = async function handler(req, res) {
   const { lat = '35.715', long = '51.404', deep } = req.query || {};
   try {
     const data = await fetchAllDeals({ lat, long, deep: deep === '1' });
+    // Shown in the UI so "am I looking at the current build?" is answerable
+    // at a glance rather than by comparing behaviour.
+    data.build = (process.env.VERCEL_GIT_COMMIT_SHA || 'local').slice(0, 7);
     // Stock sells out during the day, so this is deliberately short: two
     // minutes bounds how wrong the remaining counts can be, while still
     // sparing the (slow, flaky) proxy path from every single visitor.
