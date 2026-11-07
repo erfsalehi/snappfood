@@ -3,7 +3,7 @@
 const { fetch: uFetch, ProxyAgent } = require('undici');
 
 const TARGET = 'https://snappfood.ir/search/api/v4/food-party'
-  + '?lat=35.715&long=51.404&page=0&page_size=1'
+  + '?lat=35.715&long=51.404&deal_project_list_id=34&page=0&page_size=1'
   + '&optionalClient=PWA&client=PWA&deviceType=PWA&appVersion=6.0.0'
   + '&UDID=7b24bd12-66d8-4015-b90c-fd0ab7a18e22&Bonyan=true';
 
