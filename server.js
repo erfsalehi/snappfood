@@ -8,6 +8,7 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 
 const { fetchAllDeals } = require('./lib/snappfood');
+const proxytestHandler = require('./api/proxytest');
 
 const PORT = Number(process.env.PORT || 5173);
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -40,7 +41,23 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, data);
     } catch (err) {
       console.error('[deals] failed:', err.message);
-      sendJson(res, 502, { error: err.message });
+      sendJson(res, 502, { error: err.message, unreachable: Boolean(err.unreachable) });
+    }
+    return;
+  }
+
+  if (url.pathname === '/api/proxytest') {
+    const fakeReq = { query: Object.fromEntries(url.searchParams.entries()) };
+    const fakeRes = {
+      statusCode: 200,
+      status(code) { this.statusCode = code; return this; },
+      setHeader(k, v) { res.setHeader(k, v); return this; },
+      json(body) { sendJson(res, this.statusCode, body); },
+    };
+    try {
+      await proxytestHandler(fakeReq, fakeRes);
+    } catch (err) {
+      sendJson(res, 500, { error: err.message });
     }
     return;
   }

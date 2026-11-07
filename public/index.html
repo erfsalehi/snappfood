@@ -121,11 +121,21 @@
   .desc { color: var(--muted); font-size: 11px; display: block; white-space: normal; }
   .low { color: var(--accent); font-weight: 600; }
 
+  /* Between ~880px and 1180px there is not room for all thirteen columns,
+     but the table is still far more useful than cards - so drop the least
+     important ones (thumbnail, section, minimum order) rather than the table.
+     Indices follow COLUMNS. */
+  @media (max-width: 1180px) {
+    th:nth-child(1),  td:nth-child(1),
+    th:nth-child(4),  td:nth-child(4),
+    th:nth-child(12), td:nth-child(12) { display: none; }
+  }
+
   /* ---- cards (small screens) ---- */
   #cards { display: none; }
   #sortBar { display: none; }
 
-  @media (max-width: 1100px) {
+  @media (max-width: 880px) {
     h1 small { display: none; }
     .wrap { padding: 0 10px 32px; }
     .scroller, table { display: none; }
@@ -245,7 +255,7 @@ const REFRESH_DEBOUNCE_MS = 800;
 
 const fa = (n) => (n || 0).toLocaleString('fa-IR');
 const $ = (id) => document.getElementById(id);
-const narrow = window.matchMedia('(max-width: 1100px)');
+const narrow = window.matchMedia('(max-width: 880px)');
 
 let allItems = [];
 let view = [];

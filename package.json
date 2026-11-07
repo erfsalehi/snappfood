@@ -4,7 +4,8 @@
   "private": true,
   "description": "Sortable browser for Snappfood discount listings",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "find-proxies": "node scripts/find-working-proxies.js"
   },
   "dependencies": {
     "undici": "^6.21.0"

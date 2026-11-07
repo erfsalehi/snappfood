@@ -12,7 +12,7 @@
 const { fetch: uFetch, ProxyAgent } = require('undici');
 
 const TARGET = 'https://snappfood.ir/search/api/v4/food-party'
-  + '?lat=35.715&long=51.404&deal_project_list_id=34&page=0&page_size=1'
+  + '?lat=35.715&long=51.404&page=0&page_size=1'
   + '&optionalClient=PWA&client=PWA&deviceType=PWA&appVersion=6.0.0'
   + '&UDID=7b24bd12-66d8-4015-b90c-fd0ab7a18e22&Bonyan=true';
 
@@ -28,22 +28,31 @@ async function tryProxy(uri) {
   try {
     const res = await uFetch(TARGET, {
       dispatcher,
+      signal: AbortSignal.timeout(8000),
       headers: { accept: 'application/json', 'user-agent': 'Mozilla/5.0' },
     });
     const text = await res.text();
+    let isOk = false;
     let total = null;
     try {
       const parsed = JSON.parse(text);
-      total = parsed && parsed.data ? parsed.data.total_count : null;
+      if (parsed && (parsed.success === true || parsed.data)) {
+        isOk = Boolean(
+          typeof parsed.data?.title === 'string' ||
+          Array.isArray(parsed.data?.products) ||
+          typeof parsed.data?.total_count === 'number'
+        );
+        total = parsed.data?.total_count ?? (parsed.data?.products?.length || 0);
+      }
     } catch (e) { /* proxy returned something that is not JSON */ }
     return {
       proxy: uri,
-      ok: typeof total === 'number',
+      ok: isOk,
       status: res.status,
       total,
       ms: Date.now() - started,
       // Shown only on failure, to distinguish a dead proxy from a hijacking one.
-      sample: typeof total === 'number' ? undefined : text.slice(0, 80),
+      sample: isOk ? undefined : text.slice(0, 80),
     };
   } catch (err) {
     return { proxy: uri, ok: false, error: err.code || err.message, ms: Date.now() - started };
