@@ -1,8 +1,6 @@
-# Snappfood discount browser
+# Snappfood proxy browser
 
-Snappfood lists discounted items in carousels with no sorting. This fetches
-every discount section for a location, merges them into one table, and lets you
-sort on any column.
+Browse, search, and sort all Snappfood restaurants, foods, menus, and discount deals around your location, through an Iranian proxy or direct connection.
 
 ## Run
 
@@ -16,9 +14,29 @@ node server.js
 
 Then open http://localhost:5173
 
-No build step and no account needed - Snappfood's discount API is public and
-only needs a location. The single dependency is `undici`, for proxy support;
-see "Hosting outside Iran" below.
+No build step and no account needed — Snappfood's public APIs only need a location. The single dependency is `undici`, for Iranian proxy tunneling when accessing from abroad or through VPNs.
+
+## Features & Tabs
+
+1. **🏷️ تخفیف‌های فودپارتی (Food Party Deals)**:
+   - Fetches all active discount carousels for your coordinates, deduplicates them, and puts them into a sortable table with instant in-memory filtering.
+   - Sort by any column: discount %, total payable (price + delivery fee), rating, stock, etc.
+   - Export filtered results as UTF-8 CSV.
+
+2. **🍽️ رستوران‌های اطراف (Nearby Restaurants)**:
+   - Browse thousands of restaurants delivering to your exact location.
+   - Filter by cuisine / super-type: رستوران و فست‌فود، کافی‌شاپ، شیرینی و دسر، نانوایی، سوپرمارکت.
+   - Instant search/filter by restaurant name.
+   - Toggles for Open Now, Free Delivery, and Active Coupons.
+   - Sort by highest rating, lowest delivery fee, or most votes.
+
+3. **🔍 جست‌وجوی سراسری غذا و منو (Universal Food Search)**:
+   - Search for any food dish or vendor (e.g. «پیتزا»، «برگر»، «چلوکباب»، «عطاویچ»).
+   - Displays matching dishes with prices, discounts, and descriptions, as well as matching vendors.
+
+4. **📋 مشاهده منوی کامل رستوران‌ها (Restaurant Menu Drawer)**:
+   - Click on any restaurant or dish to open a slide-out drawer showing its full categorized live menu with photos, descriptions, and prices.
+   - One-click link to open the restaurant directly on Snappfood.
 
 ## Setting your location
 

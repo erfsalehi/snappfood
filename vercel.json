@@ -4,6 +4,15 @@
   "functions": {
     "api/deals.js": {
       "maxDuration": 60
+    },
+    "api/restaurants.js": {
+      "maxDuration": 30
+    },
+    "api/search.js": {
+      "maxDuration": 30
+    },
+    "api/menu.js": {
+      "maxDuration": 30
     }
   },
   "headers": [

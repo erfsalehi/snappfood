@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>تخفیف‌های اسنپ‌فود — مرتب‌سازی</title>
+<title>اسنپ‌فود — جست‌وجوی رستوران‌ها، غذاها و تخفیف‌ها</title>
 <style>
   :root {
     --bg: #f6f7f9;
@@ -13,8 +13,9 @@
     --muted: #6b7280;
     --accent: #e8384f;
     --good: #14804a;
+    --warn: #d97706;
     --row-alt: #fafbfc;
-    --head-top: 0px; /* set from JS to the sticky header's height */
+    --head-top: 0px;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -25,6 +26,7 @@
       --muted: #9aa3ad;
       --accent: #ff5f72;
       --good: #35c37d;
+      --warn: #fbbf24;
       --row-alt: #191d21;
     }
   }
@@ -39,13 +41,31 @@
 
   /* ---- header ---- */
   header {
-    position: sticky; top: 0; z-index: 5;
+    position: sticky; top: 0; z-index: 10;
     background: var(--panel);
     border-bottom: 1px solid var(--border);
-    padding: 10px 14px;
+    padding: 10px 14px 6px;
   }
-  h1 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
-  h1 small { font-weight: 400; color: var(--muted); font-size: 12px; margin-inline-start: 8px; }
+  .header-top {
+    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 6px;
+  }
+  h1 { margin: 0; font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  h1 small { font-weight: 400; color: var(--muted); font-size: 12px; }
+  .badge-tag { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); font-size: 11px; padding: 2px 7px; border-radius: 6px; font-weight: 600; }
+
+  /* Navigation Tabs */
+  .nav-tabs {
+    display: flex; gap: 6px; border-bottom: 1px solid var(--border); padding-bottom: 6px; margin-bottom: 8px; overflow-x: auto;
+  }
+  .tab-btn {
+    background: transparent; color: var(--muted); border: 1px solid transparent;
+    border-radius: 8px; padding: 6px 13px; font-weight: 600; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap;
+    transition: all .15s ease;
+  }
+  .tab-btn:hover { color: var(--text); background: var(--bg); }
+  .tab-btn.active { background: var(--accent); color: #fff; }
+
   .controls { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
   .field { display: flex; align-items: center; gap: 5px; }
   .field > span { color: var(--muted); font-size: 12px; white-space: nowrap; }
@@ -56,19 +76,31 @@
   input[type=number] { width: 92px; }
   input[type=search] { min-width: 190px; }
   input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
-  button { cursor: pointer; background: var(--accent); color: #fff; border-color: transparent; font-weight: 600; }
+  button { cursor: pointer; background: var(--accent); color: #fff; border-color: transparent; font-weight: 600; border-radius: 8px; }
   button:disabled { opacity: .55; cursor: default; }
   button.ghost { background: transparent; color: var(--text); border-color: var(--border); font-weight: 400; }
+  button.ghost:hover { background: var(--bg); }
   label.check { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); cursor: pointer; }
 
-  /* On wide screens the wrapper must not form a box of its own, or its
-     children stop participating in the toolbar's flex row and stack. */
   #filters { display: contents; }
   #filterToggle { display: none; }
   .spacer { flex: 1; }
 
+  /* Category pills */
+  .cat-pills {
+    display: flex; gap: 6px; overflow-x: auto; padding: 4px 0 2px;
+    scrollbar-width: thin; align-items: center;
+  }
+  .cat-pill {
+    border: 1px solid var(--border); background: var(--panel); border-radius: 20px;
+    padding: 4px 12px; font-size: 12px; cursor: pointer; white-space: nowrap; color: var(--muted);
+    transition: all .12s;
+  }
+  .cat-pill:hover { color: var(--text); border-color: var(--accent); }
+  .cat-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 600; }
+
   /* ---- status ---- */
-  #status { padding: 7px 14px; color: var(--muted); font-size: 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  #status { padding: 6px 14px; color: var(--muted); font-size: 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: center; border-bottom: 1px solid var(--border); background: var(--panel); }
   #status b { color: var(--text); }
   #status.error { color: var(--accent); }
   #age { color: var(--muted); }
@@ -81,22 +113,21 @@
   body.refreshing #spin { display: inline-block; }
   @keyframes spin { to { transform: rotate(360deg); } }
 
-  /* ---- table (wide screens) ---- */
-  .wrap { padding: 0 14px 40px; }
-  /* Deliberately no overflow here: any scroll container between the sticky
-     <th> and the viewport silently cancels position:sticky. The card layout
-     takes over below 1100px, so the table never needs to scroll sideways. */
+  .wrap { padding: 12px 14px 40px; }
+
+  /* ---- Tab Panes ---- */
+  .tab-pane { display: none; }
+  .tab-pane.active { display: block; }
+
+  /* ---- Table for Food Party ---- */
   .scroller { border-radius: 10px; }
-  table { width: 100%; border-collapse: collapse; background: var(--panel); }
-  th, td { padding: 6px 7px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border-radius: 8px; overflow: hidden; }
+  th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
   thead th {
     position: sticky; top: var(--head-top); z-index: 2;
     background: var(--panel); cursor: pointer; user-select: none;
     font-size: 12px; color: var(--muted); font-weight: 600;
-    border-bottom: 2px solid var(--border);
-    /* Long labels like "مجموع پرداختی" otherwise set a wide minimum for the
-       whole column and push the table past the viewport. */
-    white-space: normal;
+    border-bottom: 2px solid var(--border); white-space: normal;
   }
   thead th:hover { color: var(--text); }
   thead th.sorted { color: var(--accent); }
@@ -105,8 +136,6 @@
   tbody tr:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
   td.name { white-space: normal; min-width: 150px; max-width: 260px; }
   td.vendor { white-space: normal; max-width: 150px; }
-  /* Items belong to several sections; joined nowrap this column ran to
-     ~290px and pushed the table past the viewport. */
   td.section { white-space: normal; max-width: 150px; font-size: 12px; color: var(--muted); }
   td.num { font-variant-numeric: tabular-nums; }
 
@@ -115,31 +144,25 @@
   .free { color: var(--good); font-weight: 600; }
   .stars { color: #f0a92b; }
   .votes { color: var(--muted); font-size: 11px; }
-  .thumb { width: 38px; height: 38px; border-radius: 6px; object-fit: cover; background: var(--border); }
+  .thumb { width: 38px; height: 38px; border-radius: 6px; object-fit: cover; background: var(--border); vertical-align: middle; }
   a { color: inherit; text-decoration: none; }
-  .name a:hover { text-decoration: underline; }
+  .name a:hover, .vendor a:hover { text-decoration: underline; }
   .desc { color: var(--muted); font-size: 11px; display: block; white-space: normal; }
   .low { color: var(--accent); font-weight: 600; }
 
-  /* Between ~880px and 1180px there is not room for all thirteen columns,
-     but the table is still far more useful than cards - so drop the least
-     important ones (thumbnail, section, minimum order) rather than the table.
-     Indices follow COLUMNS. */
+  #cards { display: none; }
+  #sortBar { display: none; }
+
   @media (max-width: 1180px) {
     th:nth-child(1),  td:nth-child(1),
     th:nth-child(4),  td:nth-child(4),
     th:nth-child(12), td:nth-child(12) { display: none; }
   }
 
-  /* ---- cards (small screens) ---- */
-  #cards { display: none; }
-  #sortBar { display: none; }
-
   @media (max-width: 880px) {
     h1 small { display: none; }
-    .wrap { padding: 0 10px 32px; }
+    .wrap { padding: 10px 10px 32px; }
     .scroller, table { display: none; }
-
     #cards { display: grid; gap: 8px; }
     #sortBar {
       display: flex; gap: 8px; align-items: center;
@@ -148,8 +171,6 @@
     }
     #sortBar select { flex: 1; min-width: 0; }
     #sortBar > span { color: var(--muted); font-size: 12px; }
-
-    /* Collapse the filter block; the toggle reveals it. */
     #filterToggle { display: inline-block; }
     #filters {
       display: none !important; width: 100%;
@@ -165,7 +186,7 @@
     .card {
       background: var(--panel); border: 1px solid var(--border);
       border-radius: 10px; padding: 10px; display: grid;
-      grid-template-columns: 54px 1fr; gap: 10px;
+      grid-template-columns: 54px 1fr; gap: 10px; cursor: pointer;
     }
     .card img { width: 54px; height: 54px; border-radius: 8px; object-fit: cover; background: var(--border); }
     .card .body { min-width: 0; }
@@ -173,25 +194,203 @@
     .card .sub { color: var(--muted); font-size: 12px; margin-top: 1px; }
     .card .prices { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
     .card .final { font-size: 17px; font-weight: 700; }
-    .card .meta {
-      margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px 12px;
-      font-size: 12px; color: var(--muted);
-    }
+    .card .meta { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 12px; color: var(--muted); }
     .card .meta b { color: var(--text); }
   }
 
+  /* ---- Tab 2: Vendor Grid (Restaurants Nearby) ---- */
+  .toolbar-bar {
+    display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 12px; margin-bottom: 12px;
+  }
+  .vendor-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px;
+  }
+  .vendor-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; display: flex; flex-direction: column; cursor: pointer;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  }
+  .vendor-card:hover {
+    transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,.08); border-color: var(--accent);
+  }
+  .vendor-cover {
+    height: 105px; background-size: cover; background-position: center;
+    position: relative; background-color: var(--border);
+  }
+  .vendor-badge-top {
+    position: absolute; top: 8px; left: 8px;
+    background: rgba(0,0,0,.7); color: #fff; font-size: 11px;
+    padding: 2px 7px; border-radius: 6px; backdrop-filter: blur(4px);
+  }
+  .vendor-status-badge {
+    position: absolute; top: 8px; right: 8px;
+    font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 6px;
+  }
+  .status-open { background: var(--good); color: #fff; }
+  .status-closed { background: #6b7280; color: #fff; }
+  .vendor-logo-img {
+    width: 52px; height: 52px; border-radius: 10px; border: 2px solid var(--panel);
+    position: absolute; bottom: -14px; right: 12px; object-fit: cover;
+    background: var(--panel); box-shadow: 0 2px 6px rgba(0,0,0,.15);
+  }
+  .vendor-content {
+    padding: 18px 12px 12px; flex: 1; display: flex; flex-direction: column;
+  }
+  .vendor-title {
+    font-weight: 700; font-size: 15px; margin-bottom: 4px; display: flex; align-items: baseline; justify-content: space-between;
+  }
+  .vendor-rate {
+    font-size: 12px; font-weight: 700; background: color-mix(in srgb, #f0a92b 18%, transparent); color: #d97706;
+    padding: 2px 6px; border-radius: 6px; display: inline-flex; align-items: center; gap: 3px;
+  }
+  .vendor-cuisines {
+    color: var(--muted); font-size: 12px; margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .vendor-address {
+    color: var(--muted); font-size: 11px; margin-bottom: 10px; line-height: 1.35;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .vendor-footer {
+    margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center; font-size: 12px;
+  }
+  .vendor-coupon {
+    color: var(--accent); font-size: 11px; font-weight: 600; background: color-mix(in srgb, var(--accent) 10%, transparent);
+    padding: 2px 6px; border-radius: 5px;
+  }
+
+  /* ---- Tab 3: Search View ---- */
+  .search-hero {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; margin-bottom: 16px;
+  }
+  .search-input-wrap {
+    display: flex; gap: 8px; align-items: center; max-width: 650px;
+  }
+  .search-input-wrap input {
+    flex: 1; padding: 10px 14px; font-size: 15px; border-radius: 10px;
+  }
+  .search-input-wrap button {
+    padding: 10px 20px; font-size: 15px;
+  }
+  .quick-tags {
+    display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; align-items: center;
+  }
+  .quick-tags span { color: var(--muted); font-size: 12px; }
+  .tag-btn {
+    border: 1px solid var(--border); background: var(--bg); border-radius: 16px;
+    padding: 3px 10px; font-size: 12px; cursor: pointer; color: var(--text);
+  }
+  .tag-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .section-heading {
+    font-size: 15px; font-weight: 700; margin: 18px 0 10px; display: flex; align-items: center; gap: 8px;
+  }
+  .section-heading small { font-weight: 400; color: var(--muted); font-size: 12px; }
+
+  .product-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px;
+  }
+  .product-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px; display: grid; grid-template-columns: 75px 1fr; gap: 10px;
+    cursor: pointer; transition: transform .15s ease, border-color .15s ease;
+  }
+  .product-card:hover {
+    transform: translateY(-2px); border-color: var(--accent);
+  }
+  .product-card img { width: 75px; height: 75px; border-radius: 8px; object-fit: cover; background: var(--border); }
+  .product-card .title { font-weight: 700; font-size: 14px; line-height: 1.3; }
+  .product-card .p-desc {
+    color: var(--muted); font-size: 11px; margin-top: 3px; line-height: 1.35;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .product-card .vendor-tag {
+    color: var(--accent); font-size: 11px; font-weight: 600; margin-top: 4px; display: block;
+  }
+  .product-card .prices {
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-top: 6px;
+  }
+
+  /* ---- Menu Drawer / Modal ---- */
+  .drawer-backdrop {
+    position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 100;
+    opacity: 0; pointer-events: none; transition: opacity .22s ease;
+    backdrop-filter: blur(2px);
+  }
+  .drawer-backdrop.open { opacity: 1; pointer-events: auto; }
+  .drawer-panel {
+    position: fixed; top: 0; bottom: 0; right: -560px; width: 100%; max-width: 540px;
+    background: var(--panel); z-index: 101; box-shadow: -4px 0 25px rgba(0,0,0,.25);
+    transition: right .25s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column;
+  }
+  .drawer-backdrop.open .drawer-panel { right: 0; }
+  .drawer-header {
+    padding: 14px 16px; border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center; background: var(--panel);
+  }
+  .drawer-close {
+    background: transparent; color: var(--muted); border: none; font-size: 20px;
+    cursor: pointer; padding: 4px 8px; border-radius: 6px; line-height: 1;
+  }
+  .drawer-close:hover { background: var(--bg); color: var(--text); }
+  .drawer-body {
+    flex: 1; overflow-y: auto; padding: 14px 16px 40px; scrollbar-width: thin;
+  }
+  .drawer-vendor-info {
+    margin-bottom: 16px; padding-bottom: 14px; border-bottom: 1px solid var(--border);
+  }
+  .menu-cat-title {
+    font-size: 15px; font-weight: 700; color: var(--text); margin: 16px 0 8px;
+    padding-bottom: 4px; border-bottom: 2px solid var(--border); display: flex; justify-content: space-between;
+  }
+  .menu-item {
+    display: grid; grid-template-columns: 1fr 70px; gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid var(--border); align-items: center;
+  }
+  .menu-item:last-child { border-bottom: none; }
+  .menu-item-info .title { font-weight: 600; font-size: 14px; }
+  .menu-item-info .desc { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .menu-item-info .prices { display: flex; align-items: baseline; gap: 6px; margin-top: 6px; }
+  .menu-item-img { width: 70px; height: 70px; border-radius: 8px; object-fit: cover; background: var(--border); }
+  .menu-item.out-of-stock { opacity: .55; }
+  .out-badge { background: #6b7280; color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 4px; }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center; padding: 40px 14px; color: var(--muted); font-size: 14px;
+  }
 </style>
 </head>
 <body>
 <header>
-  <h1>تخفیف‌های اسنپ‌فود <small>همه‌ی لیست‌های تخفیف‌دار، قابل مرتب‌سازی روی هر ستون</small></h1>
-  <div class="controls">
-    <div class="field"><span>شهر</span><select id="city"></select></div>
-    <button class="ghost" id="geo" title="استفاده از موقعیت دقیق دستگاه">موقعیت من</button>
-    <button id="refresh">به‌روزرسانی</button>
-    <button class="ghost" id="filterToggle">فیلترها</button>
-    <span class="spacer"></span>
+  <div class="header-top">
+    <h1>
+      اسنپ‌فود پروکسی
+      <span class="badge-tag">تونل پروکسی فعال</span>
+      <small>مرور رستوران‌ها، منوها و تخفیف‌های اطراف شما</small>
+    </h1>
+    <div class="field">
+      <span>شهر:</span>
+      <select id="city"></select>
+      <button class="ghost" id="geo" title="استفاده از موقعیت دقیق دستگاه">📍 موقعیت من</button>
+      <button id="refresh">به‌روزرسانی</button>
+    </div>
+  </div>
 
+  <!-- Navigation Tabs -->
+  <div class="nav-tabs">
+    <button class="tab-btn active" data-tab="tab-deals">🏷️ تخفیف‌های فودپارتی</button>
+    <button class="tab-btn" data-tab="tab-vendors">🍽️ رستوران‌های اطراف (<span id="vendorsCountBadge">—</span>)</button>
+    <button class="tab-btn" data-tab="tab-search">🔍 جست‌وجوی سراسری غذا و منو</button>
+  </div>
+
+  <!-- Global controls & Filters for Deals -->
+  <div class="controls" id="dealsToolbar">
+    <button class="ghost" id="filterToggle">فیلترهای تخفیف</button>
+    <span class="spacer"></span>
     <div id="filters">
       <div class="field"><span>جست‌وجو</span><input id="q" type="search" placeholder="نام غذا یا رستوران…"></div>
       <div class="field"><span>بخش</span><select id="section"><option value="">همه</option></select></div>
@@ -208,24 +407,117 @@
   </div>
 </header>
 
-<div id="status"><span id="spin"></span><span id="summary">در حال دریافت…</span><span id="age"></span><span id="build"></span></div>
+<div id="status">
+  <span id="spin"></span>
+  <span id="summary">در حال دریافت اطلاعات…</span>
+  <span id="age"></span>
+  <span id="build"></span>
+</div>
 
 <div class="wrap">
-  <!-- Sorting control for small screens, where there are no column headers. -->
-  <div id="sortBar">
-    <span>مرتب‌سازی</span>
-    <select id="sortKey"></select>
-    <button class="ghost" id="sortDir" title="تغییر جهت">▼</button>
+  <!-- TAB 1: FOOD PARTY DEALS -->
+  <div id="tab-deals" class="tab-pane active">
+    <div id="sortBar">
+      <span>مرتب‌سازی</span>
+      <select id="sortKey"></select>
+      <button class="ghost" id="sortDir" title="تغییر جهت">▼</button>
+    </div>
+
+    <div class="scroller">
+      <table>
+        <thead><tr id="head"></tr></thead>
+        <tbody id="body"></tbody>
+      </table>
+    </div>
+
+    <div id="cards"></div>
   </div>
 
-  <div class="scroller">
-    <table>
-      <thead><tr id="head"></tr></thead>
-      <tbody id="body"></tbody>
-    </table>
+  <!-- TAB 2: NEARBY RESTAURANTS -->
+  <div id="tab-vendors" class="tab-pane">
+    <div class="toolbar-bar">
+      <div class="cat-pills" id="vendorCatPills">
+        <button class="cat-pill active" data-cat="RESTAURANT">رستوران و فست‌فود</button>
+        <button class="cat-pill" data-cat="CAFE">کافی‌شاپ</button>
+        <button class="cat-pill" data-cat="SWEETS">شیرینی و دسر</button>
+        <button class="cat-pill" data-cat="BAKERY">نانوایی</button>
+        <button class="cat-pill" data-cat="SUPERMARKET">سوپرمارکت</button>
+        <button class="cat-pill" data-cat="ALL">همه موارد</button>
+      </div>
+      <span class="spacer"></span>
+      <div class="field">
+        <input id="vendorSearchInput" type="search" placeholder="فیلتر نام رستوران در این لیست…">
+      </div>
+      <label class="check"><input id="vendorOpenOnly" type="checkbox" checked> فقط باز</label>
+      <label class="check"><input id="vendorFreeOnly" type="checkbox"> ارسال رایگان</label>
+      <label class="check"><input id="vendorCouponOnly" type="checkbox"> کوپن تخفیف</label>
+      <div class="field">
+        <span>مرتب‌سازی:</span>
+        <select id="vendorSort">
+          <option value="rate">بیشترین امتیاز</option>
+          <option value="deliveryFee">کمترین هزینه ارسال</option>
+          <option value="votes">بیشترین نظرات</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="vendorsListStatus" style="font-size:13px; color:var(--muted); margin-bottom:8px;"></div>
+    <div id="vendorGrid" class="vendor-grid"></div>
   </div>
 
-  <div id="cards"></div>
+  <!-- TAB 3: GLOBAL SEARCH -->
+  <div id="tab-search" class="tab-pane">
+    <div class="search-hero">
+      <div class="search-input-wrap">
+        <input id="globalSearchInput" type="search" placeholder="نام غذا، ساندویچ، پیتزا، کباب یا رستوران را جست‌وجو کنید…">
+        <button id="globalSearchBtn">جست‌وجو</button>
+      </div>
+      <div class="quick-tags">
+        <span>پیشنهادها:</span>
+        <button class="tag-btn" data-query="پیتزا">پیتزا</button>
+        <button class="tag-btn" data-query="برگر">برگر</button>
+        <button class="tag-btn" data-query="چلوکباب">چلوکباب</button>
+        <button class="tag-btn" data-query="سوخاری">سوخاری</button>
+        <button class="tag-btn" data-query="ساندویچ">ساندویچ</button>
+        <button class="tag-btn" data-query="پاستا">پاستا</button>
+        <button class="tag-btn" data-query="شیرینی">شیرینی</button>
+        <button class="tag-btn" data-query="قهوه">قهوه</button>
+      </div>
+    </div>
+
+    <div id="searchVendorsSection" style="display:none;">
+      <div class="section-heading">
+        <span>رستوران‌های مرتبط</span>
+        <small id="searchVendorsCount"></small>
+      </div>
+      <div id="searchVendorGrid" class="vendor-grid" style="margin-bottom:24px;"></div>
+    </div>
+
+    <div id="searchProductsSection" style="display:none;">
+      <div class="section-heading">
+        <span>غذاها و اقلام منو</span>
+        <small id="searchProductsCount"></small>
+      </div>
+      <div id="searchProductGrid" class="product-grid"></div>
+    </div>
+
+    <div id="searchEmptyState" class="empty-state">
+      کلمه‌ای برای جست‌وجو وارد کنید یا روی یکی از برچسب‌های بالا کلیک نمایید.
+    </div>
+  </div>
+</div>
+
+<!-- MENU DRAWER / MODAL -->
+<div id="menuDrawerBackdrop" class="drawer-backdrop">
+  <div class="drawer-panel">
+    <div class="drawer-header">
+      <div id="drawerVendorTitle" style="font-weight:700; font-size:16px;">منوی رستوران</div>
+      <button class="drawer-close" id="drawerCloseBtn">✕</button>
+    </div>
+    <div class="drawer-body" id="drawerBody">
+      <div class="empty-state">در حال بارگذاری منو…</div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -245,18 +537,14 @@ const COLUMNS = [
   { key: 'remaining',     label: 'موجودی',         type: 'num' },
 ];
 
-// Data older than this is refetched when the user touches a control - stock
-// sells out and vendors pull items, so acting on a stale list wastes a trip
-// to a sold-out deal.
 const STALE_MS = 60000;
-// Typing in the search box must not fire a request per keystroke: through a
-// proxy each fetch costs ~20s.
 const REFRESH_DEBOUNCE_MS = 800;
 
 const fa = (n) => (n || 0).toLocaleString('fa-IR');
 const $ = (id) => document.getElementById(id);
 const narrow = window.matchMedia('(max-width: 880px)');
 
+let currentTab = 'tab-deals';
 let allItems = [];
 let view = [];
 let sort = { key: 'discountRatio', dir: -1 };
@@ -265,14 +553,20 @@ let lastFetch = 0;
 let refreshTimer = null;
 let ageTimer = null;
 
+// Nearby Vendors State
+let allNearbyVendors = [];
+let vendorsMeta = { count: 0, openCount: 0 };
+let currentSuperType = 'RESTAURANT';
+let vendorsLoadedLocation = '';
+
+// Global Search State
+let lastSearchQuery = '';
+
 function esc(s) {
-  return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  return String(s || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
-// ---- sticky header offset --------------------------------------------------
-
-// The toolbar is sticky and its height changes with wrapping and with the
-// filter panel opening, so the table headers cannot use a fixed offset.
+// ---- Sticky header offset ----
 const headerEl = document.querySelector('header');
 function syncHeaderOffset() {
   document.documentElement.style.setProperty('--head-top', headerEl.offsetHeight + 'px');
@@ -281,8 +575,29 @@ new ResizeObserver(syncHeaderOffset).observe(headerEl);
 window.addEventListener('orientationchange', syncHeaderOffset);
 syncHeaderOffset();
 
-// ---- rendering -------------------------------------------------------------
+// ---- TAB SWITCHING ----
+document.querySelectorAll('.tab-btn').forEach((btn) => {
+  btn.onclick = () => {
+    document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+    document.querySelectorAll('.tab-pane').forEach((p) => p.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    $(currentTab).classList.add('active');
 
+    // Controls visibility
+    $('dealsToolbar').style.display = currentTab === 'tab-deals' ? 'flex' : 'none';
+
+    syncHeaderOffset();
+
+    // Trigger loads if not loaded for current location
+    const locKey = $('lat').value + ',' + $('long').value;
+    if (currentTab === 'tab-vendors' && vendorsLoadedLocation !== locKey) {
+      loadNearbyVendors();
+    }
+  };
+});
+
+// ---- FOOD PARTY RENDERING & SORTING ----
 function renderHead() {
   $('head').innerHTML = COLUMNS.map((c) => {
     if (c.sortable === false) return '<th></th>';
@@ -307,7 +622,6 @@ function deliveryHtml(it) {
 }
 
 function stockHtml(it) {
-  // A low count is the thing most likely to change before you can order.
   return it.remaining > 0 && it.remaining <= 2
     ? '<span class="low">' + fa(it.remaining) + '</span>'
     : fa(it.remaining);
@@ -317,10 +631,11 @@ function renderTable() {
   $('body').innerHTML = view.map((it) => {
     const thumb = it.image ? '<img class="thumb" loading="lazy" src="' + it.image + '" alt="">' : '';
     const desc = it.description ? '<span class="desc">' + esc(it.description.slice(0, 90)) + '</span>' : '';
+    const menuBtn = it.vendorCode ? ' <button class="ghost" style="padding:1px 6px; font-size:11px;" onclick="openMenu(\'' + it.vendorCode + '\', \'' + esc(it.vendor) + '\')">منو</button>' : '';
     return '<tr>'
       + '<td>' + thumb + '</td>'
       + '<td class="name"><a href="' + it.url + '" target="_blank" rel="noopener">' + esc(it.name) + '</a>' + desc + '</td>'
-      + '<td class="vendor"><a href="' + it.url + '" target="_blank" rel="noopener">' + esc(it.vendor) + '</a></td>'
+      + '<td class="vendor"><a href="' + it.url + '" target="_blank" rel="noopener">' + esc(it.vendor) + '</a>' + menuBtn + '</td>'
       + '<td class="section">' + esc(it.sections.join(' / ')) + '</td>'
       + '<td class="num">' + stars(it.rating) + ' <span class="votes">(' + fa(it.votes) + ')</span></td>'
       + '<td class="num strike">' + fa(it.price) + '</td>'
@@ -338,6 +653,7 @@ function renderTable() {
 function renderCards() {
   $('cards').innerHTML = view.map((it) => {
     const img = it.image ? '<img loading="lazy" src="' + it.image + '" alt="">' : '<img alt="">';
+    const menuBtn = it.vendorCode ? '<button class="ghost" style="margin-top:4px; font-size:12px; padding:3px 8px;" onclick="event.preventDefault(); openMenu(\'' + it.vendorCode + '\', \'' + esc(it.vendor) + '\')">مشاهده منوی رستوران</button>' : '';
     return '<a class="card" href="' + it.url + '" target="_blank" rel="noopener">'
       + img
       + '<div class="body">'
@@ -354,6 +670,7 @@ function renderCards() {
       +     '<span>مجموع: <b>' + fa(it.total) + '</b></span>'
       +     '<span>موجودی: <b>' + stockHtml(it) + '</b></span>'
       +   '</div>'
+      +   menuBtn
       + '</div></a>';
   }).join('');
 }
@@ -363,11 +680,8 @@ function renderRows() {
   else renderTable();
 }
 
-// ---- sorting ---------------------------------------------------------------
-
 function setSort(key) {
   const col = COLUMNS.find((c) => c.key === key);
-  // Numbers start high-to-low, text starts alphabetical.
   if (sort.key === key) sort.dir *= -1;
   else sort = { key, dir: col && col.type === 'num' ? -1 : 1 };
   apply();
@@ -388,8 +702,6 @@ $('sortKey').onchange = () => {
   apply();
 };
 $('sortDir').onclick = () => { sort.dir *= -1; apply(); };
-
-// ---- filtering -------------------------------------------------------------
 
 function apply() {
   const q = $('q').value.trim().toLowerCase();
@@ -428,32 +740,23 @@ function apply() {
   updateSummary();
 }
 
-// Any adjustment re-filters instantly from memory, and separately asks for
-// fresh data if what we hold has gone stale.
 function onAdjust() {
   apply();
   scheduleRefresh();
 }
 
-// ---- status ----------------------------------------------------------------
-
 function updateSummary() {
   const saved = view.reduce((s, it) => s + it.saving, 0);
   $('status').className = '';
-  $('summary').innerHTML = '<b>' + fa(view.length) + '</b> مورد از <b>' + fa(allItems.length)
-    + '</b> — جمع صرفه‌جویی: <b>' + fa(saved) + '</b> تومان';
+  $('summary').innerHTML = '<b>' + fa(view.length) + '</b> مورد تخفیف‌دار — جمع صرفه‌جویی: <b>' + fa(saved) + '</b> تومان';
 }
 
 function updateAge() {
   if (!lastFetch) { $('age').textContent = ''; return; }
   const secs = Math.round((Date.now() - lastFetch) / 1000);
-  const label = secs < 60
-    ? 'چند لحظه پیش'
-    : Math.round(secs / 60) + ' دقیقه پیش';
+  const label = secs < 60 ? 'چند لحظه پیش' : Math.round(secs / 60) + ' دقیقه پیش';
   $('age').textContent = '· به‌روزرسانی ' + label;
 }
-
-// ---- data ------------------------------------------------------------------
 
 async function load(opts) {
   const background = opts && opts.background;
@@ -463,7 +766,7 @@ async function load(opts) {
   $('refresh').disabled = true;
   if (!background) {
     $('status').className = '';
-    $('summary').textContent = 'در حال دریافت…';
+    $('summary').textContent = 'در حال دریافت اطلاعات…';
   }
 
   const scrollY = window.scrollY;
@@ -487,7 +790,10 @@ async function load(opts) {
     localStorage.setItem('sf-loc', JSON.stringify({ lat: $('lat').value, long: $('long').value }));
     apply();
     updateAge();
-    // A background refresh must not yank the page out from under the reader.
+
+    // Trigger nearby vendors background count
+    loadNearbyVendors({ silent: true });
+
     if (background) window.scrollTo(0, scrollY);
   } catch (err) {
     $('status').className = 'error';
@@ -512,7 +818,6 @@ function toCsv() {
   for (const it of view) {
     rows.push(cols.map((c) => (c.key === 'section' ? it.sections.join(' / ') : it[c.key])).concat(it.url));
   }
-  // BOM so Excel reads the UTF-8 Persian text correctly.
   const csv = '﻿' + rows.map((r) => r.map((v) => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\r\n');
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
@@ -520,10 +825,277 @@ function toCsv() {
   a.click();
 }
 
-// ---- location --------------------------------------------------------------
+// ---- TAB 2: NEARBY VENDORS LOGIC ----
+document.querySelectorAll('#vendorCatPills .cat-pill').forEach((pill) => {
+  pill.onclick = () => {
+    document.querySelectorAll('#vendorCatPills .cat-pill').forEach((p) => p.classList.remove('active'));
+    pill.classList.add('active');
+    currentSuperType = pill.dataset.cat;
+    loadNearbyVendors();
+  };
+});
 
-// City centres. Snappfood scopes deals to a delivery radius, so a centre point
-// is only an approximation - use "موقعیت من" for your actual neighbourhood.
+async function loadNearbyVendors(opts) {
+  const silent = opts && opts.silent;
+  const lat = $('lat').value;
+  const long = $('long').value;
+  const locKey = lat + ',' + long;
+
+  if (!silent) {
+    $('vendorsListStatus').textContent = 'در حال دریافت لیست رستوران‌ها…';
+  }
+
+  try {
+    const params = new URLSearchParams({
+      lat,
+      long,
+      page: '0',
+      pageSize: '60',
+      superType: currentSuperType,
+    });
+    const res = await fetch('/api/restaurants?' + params);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'خطا در دریافت لیست رستوران‌ها');
+
+    allNearbyVendors = data.vendors || [];
+    vendorsMeta = { count: data.count || 0, openCount: data.openCount || 0 };
+    vendorsLoadedLocation = locKey;
+
+    $('vendorsCountBadge').textContent = fa(vendorsMeta.count);
+    renderVendorGrid();
+  } catch (err) {
+    if (!silent) {
+      $('vendorsListStatus').textContent = 'خطا در بارگذاری رستوران‌ها: ' + err.message;
+    }
+  }
+}
+
+function renderVendorGrid() {
+  const q = ($('vendorSearchInput').value || '').trim().toLowerCase();
+  const openOnly = $('vendorOpenOnly').checked;
+  const freeOnly = $('vendorFreeOnly').checked;
+  const couponOnly = $('vendorCouponOnly').checked;
+  const sortKey = $('vendorSort').value;
+
+  let filtered = allNearbyVendors.filter((v) => {
+    if (q && !(v.title + ' ' + (v.cuisines || []).join(' ')).toLowerCase().includes(q)) return false;
+    if (openOnly && !v.isOpen) return false;
+    if (freeOnly && v.deliveryNow !== 0) return false;
+    if (couponOnly && !v.hasCoupon) return false;
+    return true;
+  });
+
+  filtered.sort((a, b) => {
+    if (sortKey === 'rate') return b.rate - a.rate;
+    if (sortKey === 'deliveryFee') return a.deliveryNow - b.deliveryNow;
+    if (sortKey === 'votes') return b.voteCount - a.voteCount;
+    return 0;
+  });
+
+  $('vendorsListStatus').innerHTML = 'نمایش <b>' + fa(filtered.length) + '</b> رستوران از مجموع <b>' + fa(vendorsMeta.count) + '</b> رستوران اطراف شما (' + fa(vendorsMeta.openCount) + ' رستوران باز)';
+
+  if (filtered.length === 0) {
+    $('vendorGrid').innerHTML = '<div class="empty-state" style="grid-column:1/-1;">رستورانی با فیلترهای انتخابی یافت نشد.</div>';
+    return;
+  }
+
+  $('vendorGrid').innerHTML = filtered.map((v) => {
+    const coverStyle = v.cover ? 'background-image:url(\'' + v.cover + '\')' : 'background:#ddd';
+    const logoHtml = v.logo ? '<img class="vendor-logo-img" src="' + v.logo + '" alt="" loading="lazy">' : '';
+    const statusClass = v.isOpen ? 'status-open' : 'status-closed';
+    const statusText = v.isOpen ? 'باز' : 'بسته';
+    const deliveryText = v.deliveryNow === 0 ? '<span class="free">ارسال رایگان</span>' : fa(v.deliveryNow) + ' تومان';
+    const couponHtml = v.hasCoupon ? '<span class="vendor-coupon">🏷️ کوپن تخفیف</span>' : '';
+    const cuisinesText = (v.cuisines && v.cuisines.length) ? esc(v.cuisines.slice(0, 3).join(' · ')) : 'رستوران';
+
+    return '<div class="vendor-card" onclick="openMenu(\'' + v.code + '\', \'' + esc(v.title) + '\')">'
+      + '<div class="vendor-cover" style="' + coverStyle + '">'
+      +   '<span class="vendor-status-badge ' + statusClass + '">' + statusText + '</span>'
+      +   (v.deliveryTime ? '<span class="vendor-badge-top">⏱️ ' + fa(v.deliveryTime) + ' دقیقه</span>' : '')
+      +   logoHtml
+      + '</div>'
+      + '<div class="vendor-content">'
+      +   '<div class="vendor-title">'
+      +     '<span>' + esc(v.title) + '</span>'
+      +     '<span class="vendor-rate">★ ' + v.rate.toFixed(1) + '</span>'
+      +   '</div>'
+      +   '<div class="vendor-cuisines">' + cuisinesText + '</div>'
+      +   '<div class="vendor-address">' + esc(v.address) + '</div>'
+      +   '<div class="vendor-footer">'
+      +     '<span>ارسال: ' + deliveryText + '</span>'
+      +     couponHtml
+      +   '</div>'
+      + '</div>'
+      + '</div>';
+  }).join('');
+}
+
+for (const id of ['vendorSearchInput', 'vendorOpenOnly', 'vendorFreeOnly', 'vendorCouponOnly', 'vendorSort']) {
+  $(id).addEventListener('input', renderVendorGrid);
+  $(id).addEventListener('change', renderVendorGrid);
+}
+
+// ---- TAB 3: GLOBAL SEARCH LOGIC ----
+async function doGlobalSearch(query) {
+  const q = (query || $('globalSearchInput').value || '').trim();
+  if (!q) return;
+  $('globalSearchInput').value = q;
+  lastSearchQuery = q;
+
+  $('searchEmptyState').style.display = 'block';
+  $('searchEmptyState').textContent = 'در حال جست‌وجوی سراسری «' + q + '»…';
+  $('searchVendorsSection').style.display = 'none';
+  $('searchProductsSection').style.display = 'none';
+
+  try {
+    const params = new URLSearchParams({
+      lat: $('lat').value,
+      long: $('long').value,
+      q,
+    });
+    const res = await fetch('/api/search?' + params);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'خطا در جست‌وجو');
+
+    const vendors = data.vendors || [];
+    const products = data.products || [];
+
+    if (vendors.length === 0 && products.length === 0) {
+      $('searchEmptyState').textContent = 'نتیجه‌ای برای «' + q + '» در محدوده شما یافت نشد.';
+      return;
+    }
+
+    $('searchEmptyState').style.display = 'none';
+
+    // Render matching vendors
+    if (vendors.length > 0) {
+      $('searchVendorsSection').style.display = 'block';
+      $('searchVendorsCount').textContent = '(' + fa(data.vendorTotal || vendors.length) + ' مورد)';
+      $('searchVendorGrid').innerHTML = vendors.map((v) => {
+        const coverStyle = v.cover ? 'background-image:url(\'' + v.cover + '\')' : 'background:#ddd';
+        const logoHtml = v.logo ? '<img class="vendor-logo-img" src="' + v.logo + '" alt="" loading="lazy">' : '';
+        const statusClass = v.isOpen ? 'status-open' : 'status-closed';
+        const statusText = v.isOpen ? 'باز' : 'بسته';
+        const deliveryText = v.deliveryNow === 0 ? '<span class="free">ارسال رایگان</span>' : fa(v.deliveryNow) + ' تومان';
+        return '<div class="vendor-card" onclick="openMenu(\'' + v.code + '\', \'' + esc(v.title) + '\')">'
+          + '<div class="vendor-cover" style="' + coverStyle + '">'
+          +   '<span class="vendor-status-badge ' + statusClass + '">' + statusText + '</span>'
+          +   logoHtml
+          + '</div>'
+          + '<div class="vendor-content">'
+          +   '<div class="vendor-title">'
+          +     '<span>' + esc(v.title) + '</span>'
+          +     '<span class="vendor-rate">★ ' + v.rate.toFixed(1) + '</span>'
+          +   '</div>'
+          +   '<div class="vendor-address">' + esc(v.address) + '</div>'
+          +   '<div class="vendor-footer"><span>ارسال: ' + deliveryText + '</span></div>'
+          + '</div></div>';
+      }).join('');
+    }
+
+    // Render matching products
+    if (products.length > 0) {
+      $('searchProductsSection').style.display = 'block';
+      $('searchProductsCount').textContent = '(' + fa(data.productTotal || products.length) + ' مورد)';
+      $('searchProductGrid').innerHTML = products.map((p) => {
+        const img = p.image ? '<img src="' + p.image + '" alt="" loading="lazy">' : '<img alt="">';
+        const discountBadge = p.discountRatio > 0 ? '<span class="pct">٪' + fa(p.discountRatio) + '</span>' : '';
+        const strikePrice = p.saving > 0 ? '<span class="strike">' + fa(p.price) + '</span>' : '';
+        const vendorLink = p.vendor ? '<span class="vendor-tag" onclick="event.stopPropagation(); openMenu(\'' + p.vendor.code + '\', \'' + esc(p.vendor.title) + '\')">🏪 ' + esc(p.vendor.title) + '</span>' : '';
+        const targetCode = p.vendor ? p.vendor.code : '';
+        return '<div class="product-card" onclick="openMenu(\'' + targetCode + '\', \'' + esc(p.title) + '\')">'
+          + img
+          + '<div style="min-width:0;">'
+          +   '<div class="title">' + esc(p.title) + '</div>'
+          +   (p.description ? '<div class="p-desc">' + esc(p.description) + '</div>' : '')
+          +   vendorLink
+          +   '<div class="prices">'
+          +     discountBadge
+          +     strikePrice
+          +     '<b>' + fa(p.finalPrice) + ' تومان</b>'
+          +   '</div>'
+          + '</div></div>';
+      }).join('');
+    }
+  } catch (err) {
+    $('searchEmptyState').style.display = 'block';
+    $('searchEmptyState').textContent = 'خطا در جست‌وجو: ' + err.message;
+  }
+}
+
+$('globalSearchBtn').onclick = () => doGlobalSearch();
+$('globalSearchInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') doGlobalSearch();
+});
+document.querySelectorAll('.tag-btn').forEach((btn) => {
+  btn.onclick = () => doGlobalSearch(btn.dataset.query);
+});
+
+// ---- MENU DRAWER / MODAL ----
+async function openMenu(vendorCode, vendorTitle) {
+  if (!vendorCode) return;
+  const cleanCode = vendorCode.replace(/^-r-/, '').replace(/\/$/, '');
+  $('menuDrawerBackdrop').classList.add('open');
+  $('drawerVendorTitle').textContent = vendorTitle || 'منوی رستوران';
+  $('drawerBody').innerHTML = '<div class="empty-state">در حال بارگذاری منوی رستوران…</div>';
+
+  try {
+    const res = await fetch('/api/menu?code=' + encodeURIComponent(cleanCode));
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'خطا در دریافت منو');
+
+    const categories = data.categories || [];
+    if (categories.length === 0) {
+      $('drawerBody').innerHTML = '<div class="empty-state">منویی برای این رستوران یافت نشد.</div>';
+      return;
+    }
+
+    const openInSnappfoodUrl = 'https://snappfood.ir/restaurant/menu/-r-' + cleanCode + '/';
+    let html = '<div class="drawer-vendor-info">'
+      + '<div style="display:flex; justify-content:space-between; align-items:center;">'
+      +   '<h3 style="margin:0; font-size:16px;">' + esc(vendorTitle) + '</h3>'
+      +   '<a href="' + openInSnappfoodUrl + '" target="_blank" rel="noopener" class="button" style="background:var(--accent); color:#fff; padding:5px 12px; border-radius:6px; font-size:12px; font-weight:600;">سفارش در اسنپ‌فود ↗</a>'
+      + '</div>'
+      + '<div style="color:var(--muted); font-size:12px; margin-top:4px;">' + fa(data.totalProducts) + ' قلم کالا در ' + fa(categories.length) + ' دسته‌بندی</div>'
+      + '</div>';
+
+    for (const cat of categories) {
+      html += '<div class="menu-cat-title"><span>' + esc(cat.title) + '</span><small style="font-weight:400; color:var(--muted);">' + fa(cat.products.length) + '</small></div>';
+      for (const p of cat.products) {
+        const img = p.image ? '<img class="menu-item-img" src="' + p.image + '" alt="" loading="lazy">' : '';
+        const discountBadge = p.discountRatio > 0 ? '<span class="pct" style="font-size:10px;">٪' + fa(p.discountRatio) + '</span>' : '';
+        const strike = p.saving > 0 ? '<span class="strike">' + fa(p.price) + '</span>' : '';
+        const outBadge = !p.active ? '<span class="out-badge">ناموجود</span>' : '';
+        html += '<div class="menu-item ' + (!p.active ? 'out-of-stock' : '') + '">'
+          + '<div class="menu-item-info">'
+          +   '<div class="title">' + esc(p.title) + ' ' + outBadge + '</div>'
+          +   (p.description ? '<div class="desc">' + esc(p.description) + '</div>' : '')
+          +   '<div class="prices">'
+          +     discountBadge
+          +     strike
+          +     '<b>' + fa(p.finalPrice) + ' تومان</b>'
+          +   '</div>'
+          + '</div>'
+          + img
+          + '</div>';
+      }
+    }
+
+    $('drawerBody').innerHTML = html;
+  } catch (err) {
+    $('drawerBody').innerHTML = '<div class="empty-state" style="color:var(--accent);">خطا در دریافت منو: ' + esc(err.message) + '</div>';
+  }
+}
+
+$('drawerCloseBtn').onclick = () => $('menuDrawerBackdrop').classList.remove('open');
+$('menuDrawerBackdrop').onclick = (e) => {
+  if (e.target === $('menuDrawerBackdrop')) $('menuDrawerBackdrop').classList.remove('open');
+};
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') $('menuDrawerBackdrop').classList.remove('open');
+});
+
+// ---- LOCATION & PRESETS ----
 const CITIES = [
   ['تهران', 35.715, 51.404],
   ['مشهد', 36.2972, 59.6067],
@@ -552,12 +1124,18 @@ function syncCitySelect() {
 $('city').innerHTML = '<option value="">دلخواه</option>'
   + CITIES.map((c) => '<option>' + c[0] + '</option>').join('');
 
+function reloadActiveTab() {
+  load();
+  if (currentTab === 'tab-vendors') loadNearbyVendors();
+  if (currentTab === 'tab-search' && lastSearchQuery) doGlobalSearch(lastSearchQuery);
+}
+
 $('city').onchange = () => {
   const c = CITIES.find((x) => x[0] === $('city').value);
   if (!c) return;
   $('lat').value = c[1];
   $('long').value = c[2];
-  load(); // a different location is different data, not a filter
+  reloadActiveTab();
 };
 
 for (const id of ['lat', 'long']) $(id).addEventListener('input', syncCitySelect);
@@ -575,7 +1153,7 @@ $('geo').onclick = () => {
       $('lat').value = pos.coords.latitude.toFixed(4);
       $('long').value = pos.coords.longitude.toFixed(4);
       syncCitySelect();
-      load();
+      reloadActiveTab();
     },
     (err) => {
       $('status').className = 'error';
@@ -585,23 +1163,20 @@ $('geo').onclick = () => {
   );
 };
 
-// ---- wiring ----------------------------------------------------------------
-
+// ---- WIRING ----
 for (const id of ['q', 'section', 'minRating', 'minPct', 'maxTotal', 'freeOnly', 'stockOnly']) {
   $(id).addEventListener('input', onAdjust);
 }
 $('deep').addEventListener('change', () => load());
-$('refresh').onclick = () => load();
+$('refresh').onclick = () => reloadActiveTab();
 $('csv').onclick = toCsv;
 $('filterToggle').onclick = () => {
   document.body.classList.toggle('filters-open');
   syncHeaderOffset();
 };
 
-// Switching between table and cards needs a re-render, not just new CSS.
 narrow.addEventListener('change', () => { renderRows(); syncHeaderOffset(); });
 
-// Coming back to the tab after a while should not show yesterday's stock.
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden && Date.now() - lastFetch > STALE_MS) load({ background: true });
 });
@@ -611,7 +1186,7 @@ ageTimer = setInterval(updateAge, 15000);
 try {
   const saved = JSON.parse(localStorage.getItem('sf-loc') || 'null');
   if (saved) { $('lat').value = saved.lat; $('long').value = saved.long; }
-} catch (e) { /* ignore bad cache */ }
+} catch (e) { /* ignore */ }
 syncCitySelect();
 
 renderHead();

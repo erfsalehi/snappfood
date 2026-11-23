@@ -7,7 +7,7 @@ const http = require('node:http');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 
-const { fetchAllDeals } = require('./lib/snappfood');
+const { fetchAllDeals, fetchNearbyVendors, searchSnappfood, fetchVendorMenu } = require('./lib/snappfood');
 const proxytestHandler = require('./api/proxytest');
 
 const PORT = Number(process.env.PORT || 5173);
@@ -41,6 +41,61 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, data);
     } catch (err) {
       console.error('[deals] failed:', err.message);
+      sendJson(res, 502, { error: err.message, unreachable: Boolean(err.unreachable) });
+    }
+    return;
+  }
+
+  if (url.pathname === '/api/restaurants') {
+    const lat = url.searchParams.get('lat') || '35.715';
+    const long = url.searchParams.get('long') || '51.404';
+    const page = Number(url.searchParams.get('page')) || 0;
+    const pageSize = Number(url.searchParams.get('pageSize')) || 30;
+    const superTypeAlias = url.searchParams.get('superType') || 'RESTAURANT';
+    const category = url.searchParams.get('category') || undefined;
+    try {
+      const started = Date.now();
+      const data = await fetchNearbyVendors({ lat, long, page, pageSize, superTypeAlias, category });
+      console.log(`[restaurants] ${data.vendors.length}/${data.count} vendors in ${Date.now() - started}ms (lat=${lat} long=${long})`);
+      sendJson(res, 200, data);
+    } catch (err) {
+      console.error('[restaurants] failed:', err.message);
+      sendJson(res, 502, { error: err.message, unreachable: Boolean(err.unreachable) });
+    }
+    return;
+  }
+
+  if (url.pathname === '/api/search') {
+    const lat = url.searchParams.get('lat') || '35.715';
+    const long = url.searchParams.get('long') || '51.404';
+    const query = url.searchParams.get('q') || url.searchParams.get('query') || '';
+    const page = Number(url.searchParams.get('page')) || 0;
+    const pageSize = Number(url.searchParams.get('pageSize')) || 40;
+    try {
+      const started = Date.now();
+      const data = await searchSnappfood({ lat, long, query, page, pageSize });
+      console.log(`[search] "${query}" -> ${data.vendors.length} vendors, ${data.products.length} products in ${Date.now() - started}ms`);
+      sendJson(res, 200, data);
+    } catch (err) {
+      console.error('[search] failed:', err.message);
+      sendJson(res, 502, { error: err.message, unreachable: Boolean(err.unreachable) });
+    }
+    return;
+  }
+
+  if (url.pathname === '/api/menu') {
+    const vendorCode = url.searchParams.get('code') || url.searchParams.get('vendorCode') || '';
+    if (!vendorCode) {
+      sendJson(res, 400, { error: 'vendorCode query parameter is required' });
+      return;
+    }
+    try {
+      const started = Date.now();
+      const data = await fetchVendorMenu({ vendorCode });
+      console.log(`[menu] ${vendorCode} -> ${data.categories.length} categories, ${data.totalProducts} products in ${Date.now() - started}ms`);
+      sendJson(res, 200, data);
+    } catch (err) {
+      console.error(`[menu] ${vendorCode} failed:`, err.message);
       sendJson(res, 502, { error: err.message, unreachable: Boolean(err.unreachable) });
     }
     return;
