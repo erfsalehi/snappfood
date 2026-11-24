@@ -1003,7 +1003,8 @@ async function doGlobalSearch(query) {
         const strikePrice = p.saving > 0 ? '<span class="strike">' + fa(p.price) + '</span>' : '';
         const vendorLink = p.vendor ? '<span class="vendor-tag" onclick="event.stopPropagation(); openMenu(\'' + p.vendor.code + '\', \'' + esc(p.vendor.title) + '\')">🏪 ' + esc(p.vendor.title) + '</span>' : '';
         const targetCode = p.vendor ? p.vendor.code : '';
-        return '<div class="product-card" onclick="openMenu(\'' + targetCode + '\', \'' + esc(p.title) + '\')">'
+        const vendorName = p.vendor ? p.vendor.title : p.title;
+        return '<div class="product-card" onclick="openMenu(\'' + targetCode + '\', \'' + esc(vendorName) + '\')">'
           + img
           + '<div style="min-width:0;">'
           +   '<div class="title">' + esc(p.title) + '</div>'
@@ -1051,12 +1052,42 @@ async function openMenu(vendorCode, vendorTitle) {
     }
 
     const openInSnappfoodUrl = 'https://snappfood.ir/restaurant/menu/-r-' + cleanCode + '/';
+
+    // Cross-reference with allItems (food-party deals) for this vendor as a fallback
+    const dealsForVendor = (allItems || []).filter(
+      (d) => d.vendorCode && d.vendorCode.replace(/^-r-/, '').replace(/\/$/, '') === cleanCode
+    );
+
+    // Apply any deals to products in case menu-read-model missed any
+    let totalDiscounted = 0;
+    for (const cat of categories) {
+      for (const p of cat.products) {
+        if ((!p.saving || p.saving === 0) && dealsForVendor.length > 0) {
+          const match = dealsForVendor.find(
+            (d) => d.name && (d.name === p.title || p.title.includes(d.name) || d.name.includes(p.title))
+          );
+          if (match && match.saving > 0) {
+            p.saving = match.saving;
+            p.discountRatio = match.discountRatio;
+            p.finalPrice = match.finalPrice;
+            if (!p.price) p.price = match.price;
+          }
+        }
+        if (p.discountRatio > 0 || p.saving > 0) {
+          totalDiscounted++;
+        }
+      }
+    }
+
     let html = '<div class="drawer-vendor-info">'
       + '<div style="display:flex; justify-content:space-between; align-items:center;">'
       +   '<h3 style="margin:0; font-size:16px;">' + esc(vendorTitle) + '</h3>'
       +   '<a href="' + openInSnappfoodUrl + '" target="_blank" rel="noopener" class="button" style="background:var(--accent); color:#fff; padding:5px 12px; border-radius:6px; font-size:12px; font-weight:600;">سفارش در اسنپ‌فود ↗</a>'
       + '</div>'
-      + '<div style="color:var(--muted); font-size:12px; margin-top:4px;">' + fa(data.totalProducts) + ' قلم کالا در ' + fa(categories.length) + ' دسته‌بندی</div>'
+      + '<div style="color:var(--muted); font-size:12px; margin-top:4px;">'
+      +   fa(data.totalProducts) + ' قلم کالا در ' + fa(categories.length) + ' دسته‌بندی'
+      +   (totalDiscounted > 0 ? ' · <span style="color:var(--accent); font-weight:700;">' + fa(totalDiscounted) + ' کالای دارای تخفیف</span>' : '')
+      + '</div>'
       + '</div>';
 
     for (const cat of categories) {
